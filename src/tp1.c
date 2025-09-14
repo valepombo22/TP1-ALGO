@@ -1,3 +1,4 @@
+#define _POSIX_C_SOURCE 200809L
 #include "tp1.h"
 #include <stdbool.h>
 #include <stdio.h>
