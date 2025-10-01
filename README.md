@@ -49,7 +49,7 @@ El flujo del programa es el siguiente:
 
 #### 1. Estructura Interna del TP1
 
-<div align="center"> <img width="60%" src="img/diagrama_tp1.svg"> </div>
+<div align="center"> <img width="60%" src="img/diagrama_tp1.png"> </div>
 
 **Composición:**
 -   `tp1_t` (la lista) contiene un **puntero** al bloque de memoria principal (`pokemones`).
@@ -58,7 +58,7 @@ El flujo del programa es el siguiente:
 
 #### 2. Agregado de Pokémon
 
-<div align="center"> <img width="70%" src="img/diagrama_agregado.svg"> </div>
+<div align="center"> <img width="70%" src="img/diagrama_agregado.png"> </div>
 
 **Proceso de `tp1_agregar_pokemon`:**
 1.  **Capacidad:** Si la lista está llena, se realiza un `realloc` para aumentar la capacidad del arreglo (aunque la implementación actual lo hace de a uno, lo óptimo sería duplicar el espacio).
@@ -67,7 +67,7 @@ El flujo del programa es el siguiente:
 
 #### 3. Lectura y Validación
 
-<div align="center"> <img width="70%" src="img/diagrama_lectura.svg"> </div>
+<div align="center"> <img width="70%" src="img/diagrama_lectura.png"> </div>
 
 **Proceso de `tp1_leer_archivo`:**
 1.  Se lee una línea completa del CSV (ej. "1,Bulbasaur,PLAN,45,49,49") usando `leer_linea_dinamica`.
@@ -76,11 +76,11 @@ El flujo del programa es el siguiente:
 
 #### 4. Operaciones de Conjunto
 
-<div align="center"> <img width="70%" src="img/diagrama_union.svg"> </div>
+<div align="center"> <img width="70%" src="img/diagrama_operaciones.png"> </div>
 
 Las operaciones (Unión, Intersección, Diferencia) se basan en el principio de *Merge* (mezcla) de arreglos ordenados:
 -   Se usan dos índices (`i` y `j`) para recorrer ambos TDA simultáneamente.
--   Se comparan los IDs en $O(1)$.
+-   Se comparan los IDs en O(1).
 -   **Unión:** Agrega el Pokémon con el ID menor (o el del segundo TDA si los IDs son iguales) y avanza ambos índices si son iguales para evitar duplicados.
 -   **Intersección:** Solo agrega el Pokémon si los IDs son **iguales** (avanzando ambos índices).
 -   **Diferencia (TP1 - TP2):** Agrega el Pokémon solo si su ID es **menor** que el Pokémon actual del segundo TDA.
@@ -151,6 +151,4 @@ Este diagrama simplifica el flujo de lectura y validación de una línea de dato
 
 ### 4. Operación de Unión (Algoritmo de Merge)
 
-Este diagrama muestra cómo se combinan dos listas ordenadas ($O(n+m)$) usando dos punteros sin tener que anidar bucles.
-
- and B[j]', 'Add the smaller one to Result', and 'Advance the pointer of the added element'.]
+Este diagrama muestra cómo se combinan dos listas ordenadas (O(n+m)) usando dos punteros sin tener que anidar bucles.
