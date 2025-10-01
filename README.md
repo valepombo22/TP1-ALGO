@@ -4,161 +4,197 @@
 
 # TDA LISTA
 
-## Alumno: Valeria Pombo Muzzolón  - 112754 - vpombo@fi.uba.ar
+## Alumno: Valeria Pombo Muzzolón - 112754 - vpombo@fi.uba.ar
 
-- Para compilar:
+---
 
-```bash
-gcc -I src -o main main.c src/tp1.c
-```
+## Para compilar
 
-- Para ejecutar:
+gcc -I src -o tp1 main.c src/tp1.c
 
-```bash
-./tp1 archivo_pokemones.txt
-```
+## Para ejecutar
 
-- Para ejecutar con valgrind:
+./tp1 pokedex.csv buscar nombre Pikachu
 
-```bash
-valgrind --leak-check=full ./pruebas
-```
+## Para ejecutar con valgrind
+
+valgrind --leak-check=full ./tp1 pokedex.csv buscar nombre Pikachu
 
 ---
 
 ## Funcionamiento
 
-El TP implementa un **TDA de lista dinámica** para manejar un conjunto de pokemones. Cada Pokémon se representa mediante una estructura que contiene su `id` y `nombre`. La lista está implementada mediante un arreglo dinámico que se redimensiona automáticamente cuando se alcanza su capacidad máxima.
+El TP implementa un **Tipo de Datos Abstracto (TDA) de lista de Pokémon** que permite:
 
-### Flujo principal:
-
-1. **Lectura de archivo:**  
-   - Se abre el archivo pasado como parámetro.  
-   - Se leen las líneas una por una.  
-   - Se ignoran líneas vacías o duplicadas.  
-   - Se crea un registro `pokemon` para cada línea válida.  
-   - Cada Pokémon se agrega al arreglo dinámico, redimensionando si es necesario.
-
-```c
-tp1_t *tp1_leer_archivo(const char *nombre_archivo) {
-    if (!nombre_archivo)
-        return NULL;
-    FILE *f = fopen(nombre_archivo, "r");
-    if (!f)
-        return NULL;
-
-    tp1_t *tp = tp1_crear();
-    if (!tp) { fclose(f); return NULL; }
-
-    char buffer[256];
-    while (fgets(buffer, sizeof(buffer), f)) {
-        size_t len = strlen(buffer);
-        if (len && buffer[len - 1] == '\n') buffer[len - 1] = '\0';
-        if (buffer[0] == '\0') continue;  // línea vacía
-        if (tp1_buscar_nombre(tp, buffer)) continue;  // duplicado
-
-        struct pokemon *p = malloc(sizeof(struct pokemon));
-        if (!p) { tp1_destruir(tp); fclose(f); return NULL; }
-
-        p->nombre = mi_strdup(buffer);
-        if (!p->nombre) { free(p); tp1_destruir(tp); fclose(f); return NULL; }
-
-        p->id = tp->cantidad + 1;
-
-        if (tp->cantidad == tp->capacidad && !tp1_redimensionar(tp)) {
-            free(p->nombre); free(p); tp1_destruir(tp); fclose(f); return NULL;
-        }
-
-        tp->pokemones[tp->cantidad++] = p;
-    }
-    fclose(f);
-    return tp;
-}
-```
-
-2. **Búsqueda:**  
-   - `tp1_buscar_nombre` recorre la lista y devuelve el puntero al Pokémon si se encuentra el nombre.  
-   - `tp1_buscar_id` devuelve el puntero al Pokémon si se encuentra el id.
-
-3. **Guardar en archivo:**  
-   - `tp1_guardar_archivo` recorre la lista y escribe cada Pokémon en el archivo de salida, evitando duplicados.
-
-4. **Operaciones de conjunto:**  
-   - `tp1_union`, `tp1_interseccion` y `tp1_diferencia` crean nuevas listas combinando o comparando los pokemones de dos listas, respetando los ids y evitando duplicados.  
-
-5. **Iterador:**  
-   - `tp1_con_cada_pokemon` permite recorrer la lista y aplicar una función a cada Pokémon.  
-   - La iteración se detiene si la función devuelve `false`.
+- Leer Pokémon desde archivos CSV y almacenarlos en un vector dinámico.
+- Buscar Pokémon por nombre o ID.
+- Recorrer todos los Pokémon mediante un callback.
+- Guardar la lista en un archivo CSV.
+- Operaciones entre TP: unión, intersección y diferencia.
+- Mostrar todos los Pokémon ordenados por nombre o ID usando funciones públicas.
 
 ---
 
-### Diagramas de memoria
+## Decisiones de diseño y funcionamiento
 
-#### 1. Lista dinámica de pokemones
-<div align="center">
-<img width="70%" src="img/diagrama1.svg">
-</div>
+### Lectura de archivos
 
-- Cada bloque del arreglo apunta a una estructura `pokemon`.  
-- Se utiliza `realloc` para agrandar el arreglo cuando se llena:
+- Cada línea se lee dinámicamente (leer_linea_dinamica).
+- Los campos se separan manualmente para evitar strtok.
+- Se validan campos, tipo y duplicados antes de agregar al TP.
+- Pokémon válidos se agregan al vector dinámico en orden por ID.
 
-```c
-struct pokemon **aux = realloc(tp->pokemones, sizeof(struct pokemon*) * nueva_capacidad);
-if (!aux) return false;
-tp->pokemones = aux;
-tp->capacidad = nueva_capacidad;
-```
+### Vector dinámico
 
-#### 2. Flujo de lectura de archivo
-<div align="center">
-<img width="70%" src="img/diagrama2.svg">
-</div>
+- tp1_t contiene un arreglo dinámico (struct pokemon*) con cantidad y capacidad.
+- realloc amplía el vector al agregar Pokémon.
 
----
+### Búsquedas
 
-## Manejo de errores y punteros NULL
+- Por nombre: lineal.
+- Por ID: binaria, gracias al orden por ID.
 
-- Todas las funciones verifican punteros NULL antes de operar sobre ellos: lectura de archivos, guardar, buscar y operaciones de conjunto.
-- Esto evita crashes y memory leaks.
-- Se liberan correctamente todos los punteros en caso de errores parciales.
+### Iterador
 
-```c
-if (!tp || !nombre_archivo) return NULL;
-```
+- tp1_con_cada_pokemon permite ejecutar callbacks sobre todos los Pokémon.
 
-- Pruebas con punteros NULL:
-  - `tp1_leer_archivo(NULL)` devuelve NULL. ✅  
-  - `tp1_guardar_archivo(NULL, ...)` devuelve NULL. ✅  
-  - `tp1_union(NULL, tp1_b)` devuelve NULL. ❌ (corrigido verificando ambos punteros al inicio de la función).  
-  - Misma lógica aplicada a `tp1_interseccion` y `tp1_diferencia`.
+### Operaciones entre TP
 
----
+- Unión: combina ambos TP evitando duplicados.
+- Intersección: conserva solo Pokémon presentes en ambos TP.
+- Diferencia: conserva Pokémon solo del primer TP.
 
-## Resumen de errores detectados y corregidos con valgrind
+### Mostrar ordenado
 
-1. **Memory leaks al crear listas vacías en operaciones de conjunto:**  
-   - Se detectaron bloques de 80 y 104 bytes indirectamente perdidos en `tp1_union`, `tp1_interseccion` y `tp1_diferencia`.  
-   - Corrección: liberar correctamente las listas temporales cuando los punteros de entrada son NULL o cuando falla la asignación de memoria.
+- Se construye un array de punteros temporal y se ordena con qsort.
 
-2. **Leaks de cadenas duplicadas (`mi_strdup`):**  
-   - Cada Pokémon duplicado generaba memoria reservada que no se liberaba.  
-   - Corrección: liberar siempre `p->nombre` si se descarta el Pokémon por duplicado o error de redimensionamiento.
+### Decisiones importantes
 
-3. **Errores en conteo de Pokémon después de operaciones de unión/diferencia/intersección:**  
-   - Se producía que la cantidad de pokemones era mayor o menor que la esperada.  
-   - Corrección: verificar duplicados antes de agregar y ajustar correctamente los ids.
-
-4. **Prevención de accesos a NULL:**  
-   - Todas las funciones ahora retornan NULL o 0 si se pasan punteros NULL como parámetros.
+- Duplicación de cadenas (strdup) para cada Pokémon.
+- Uso de un auxiliar en realloc para no perder el puntero original.
+- Líneas malformadas o duplicadas son ignoradas al leer.
+- enum tipo_pokemon para tipos seguros.
 
 ---
 
-## Decisiones de diseño
+## Diagramas de memoria y flujo
 
-- Uso de **arreglo dinámico** en lugar de lista enlazada para un acceso más rápido por índice.  
-- Evitar duplicados durante la lectura para mantener consistencia.  
-- Modularización de funciones: lectura, escritura, búsqueda, iteración y operaciones de conjunto separadas.  
-- Iterador flexible con función callback para cualquier operación sobre los pokemones.
+### 1. Estructura interna del TP1
 
+tp1_t
++-------------------+
+| pokemones --------+----> [ struct pokemon ][ struct pokemon ] ...
+| cantidad          |       ID, nombre*, tipo, ataque, defensa, velocidad
+| capacidad         |
++-------------------+
 
+struct pokemon
++-----------+   +-----------------+
+| id        |   | int             |
+| nombre ---+---> char*           |
+| tipo      |   | enum tipo       |
+| ataque    |   | int             |
+| defensa   |   | int             |
+| velocidad |   | int             |
++-----------+   +-----------------+
 
+---
+
+### 2. Flujo de operaciones
+
+Archivo CSV 
+     |
+     v
+leer_linea_dinamica
+     |
+     v
+parseo campos
+     |
+     v
+validar datos
+     |
+     v
+tp1_agregar_pokemon --> vector interno
+
+---
+
+### 3. Ordenamiento para mostrar
+
+tp1_con_cada_pokemon --> array de punteros
+                 |
+                 v
+               qsort (por nombre o ID)
+                 |
+                 v
+             recorrer para imprimir
+
+---
+
+### 4. Operaciones entre TP
+
+**Unión:**
+
+TP1_A + TP1_B
+      |
+      v
+nuevo TP1 con todos los Pokémon únicos (orden por ID)
+
+**Intersección:**
+
+TP1_A ∩ TP1_B
+      |
+      v
+nuevo TP1 con solo Pokémon presentes en ambos
+
+**Diferencia:**
+
+TP1_A - TP1_B
+      |
+      v
+nuevo TP1 con solo Pokémon de A que no están en B
+
+---
+
+### 5. Array temporal en main
+
+struct pokemon **array = malloc(sizeof(struct pokemon*) * tp1_cantidad(tp));
+aux_array aux = { array, 0 };
+tp1_con_cada_pokemon(tp, callback_guardar, &aux);
+qsort(array, tp1_cantidad(tp), sizeof(struct pokemon*), cmp_nombre); // o cmp_id
+for(size_t i = 0; i < tp1_cantidad(tp); i++)
+    mostrar_pokemon(array[i]);
+free(array);
+
+---
+
+## Respuestas a las preguntas teóricas
+
+### Elección de estructuras
+
+- Vector dinámico: acceso rápido y búsqueda binaria eficiente por ID.
+- struct pokemon: campos necesarios + char* para nombre.
+
+### Disposición en memoria
+
+- TP (tp1_t) apunta a un array de Pokémon.
+- Cada Pokémon tiene memoria independiente para nombre.
+- Arrays auxiliares se usan para ordenar sin tocar la estructura interna.
+
+### Complejidad temporal
+
+Función                       | Complejidad
+-------------------------------|------------
+tp1_buscar_nombre              | O(n)
+tp1_buscar_id                  | O(log n)
+tp1_agregar_pokemon            | O(n)
+tp1_con_cada_pokemon           | O(n)
+tp1_union / interseccion / diferencia | O(n+m)
+tp1_guardar_archivo            | O(n)
+
+> n = cantidad de Pokémon en el TP, m = cantidad en otro TP.
+
+### Dificultades en el main
+
+- No acceso a punteros internos → se usa array temporal para ordenar.
+- Mostrar por nombre o ID requiere ordenar con qsort.
+- Se respetan solo funciones públicas del TP.
